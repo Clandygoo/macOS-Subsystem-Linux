@@ -1,0 +1,28 @@
+# macOS Subsystem for Linux - .gitignore
+
+# Lima VM data
+.lima/
+
+# Temp files
+*.tmp
+*.temp
+.DS_Store
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Compiled
+*.o
+*.a
+*.so

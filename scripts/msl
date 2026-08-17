@@ -1,0 +1,178 @@
+#!/bin/bash
+# MSL - macOS Subsystem for Linux
+# Main command interface
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MSL_HOME="$(dirname "$SCRIPT_DIR")"
+MSL_INSTANCE="msl"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${BLUE}macOS Subsystem for Linux${NC}"
+    echo ""
+    echo "Usage: msl <command>"
+    echo ""
+    echo "Commands:"
+    echo -e "  ${GREEN}start${NC}      Start the Linux VM"
+    echo -e "  ${GREEN}stop${NC}       Stop the Linux VM"
+    echo -e "  ${GREEN}restart${NC}    Restart the Linux VM"
+    echo -e "  ${GREEN}shell${NC}      Enter Linux shell"
+    echo -e "  ${GREEN}status${NC}     Show VM status"
+    echo -e "  ${GREEN}mount${NC}      Mount NTFS disk (msl mount /dev/disk2s1)"
+    echo -e "  ${GREEN}umount${NC}     Unmount NTFS disk"
+    echo -e "  ${GREEN}update${NC}     Update VM packages"
+    echo -e "  ${GREEN}install${NC}    Install package (msl install <package>)"
+    echo -e "  ${GREEN}logs${NC}       Show VM logs"
+    echo -e "  ${GREEN}ssh${NC>        Show SSH connection info"
+    echo -e "  ${GREEN}help${NC>       Show this help"
+}
+
+cmd_start() {
+    echo -e "${BLUE}Starting MSL...${NC}"
+    if limactl status "$MSL_INSTANCE" 2>/dev/null | grep -q "Running"; then
+        echo -e "${YELLOW}VM is already running.${NC}"
+    else
+        limactl start "$MSL_INSTANCE"
+        echo -e "${GREEN}MSL started.${NC}"
+    fi
+}
+
+cmd_stop() {
+    echo -e "${BLUE}Stopping MSL...${NC}"
+    limactl stop "$MSL_INSTANCE"
+    echo -e "${GREEN}MSL stopped.${NC}"
+}
+
+cmd_restart() {
+    echo -e "${BLUE}Restarting MSL...${NC}"
+    limactl stop "$MSL_INSTANCE" 2>/dev/null || true
+    limactl start "$MSL_INSTANCE"
+    echo -e "${GREEN}MSL restarted.${NC}"
+}
+
+cmd_shell() {
+    if ! limactl status "$MSL_INSTANCE" 2>/dev/null | grep -q "Running"; then
+        echo -e "${YELLOW}VM is not running. Starting...${NC}"
+        limactl start "$MSL_INSTANCE"
+    fi
+    limactl shell "$MSL_INSTANCE" -- bash
+}
+
+cmd_status() {
+    echo -e "${BLUE}MSL Status:${NC}"
+    limactl status "$MSL_INSTANCE" 2>/dev/null || echo -e "${YELLOW}VM not found.${NC}"
+    echo ""
+    echo -e "${BLUE}Disk usage:${NC}"
+    limactl shell "$MSL_INSTANCE" -- df -h / 2>/dev/null || true
+}
+
+cmd_mount() {
+    local disk="${1:-}"
+    if [[ -z "$disk" ]]; then
+        echo -e "${RED}Usage: msl mount /dev/disk2s1${NC}"
+        echo ""
+        echo "Available disks:"
+        diskutil list | grep -E "^/dev/disk" | grep -v "disk0" | head -10
+        return 1
+    fi
+
+    echo -e "${BLUE}Mounting $disk...${NC}"
+
+    # Mount the disk on macOS
+    local mount_point="/Volumes/$(basename "$disk")"
+    if [[ ! -d "$mount_point" ]]; then
+        diskutil mount "$disk" || {
+            echo -e "${RED}Failed to mount disk. Is it connected?${NC}"
+            return 1
+        }
+    fi
+
+    # Create SMB mount in VM
+    local vm_mount="/mnt/host"
+    limactl shell "$MSL_INSTANCE" -- sudo mkdir -p "$vm_mount"
+    limactl shell "$MSL_INSTANCE" -- sudo mount -t virtiofs mounted="$vm_mount" || true
+
+    echo -e "${GREEN}Disk mounted at $mount_point${NC}"
+    echo -e "${BLUE}Access in VM: /mnt/host/$(basename "$mount_point")${NC}"
+}
+
+cmd_umount() {
+    local disk="${1:-}"
+    if [[ -z "$disk" ]]; then
+        echo -e "${RED}Usage: msl umount /dev/disk2s1${NC}"
+        return 1
+    fi
+
+    diskutil unmount "$disk" 2>/dev/null || true
+    echo -e "${GREEN}Disk unmounted.${NC}"
+}
+
+cmd_update() {
+    echo -e "${BLUE}Updating packages...${NC}"
+    limactl shell "$MSL_INSTANCE" -- sudo apt-get update -qq
+    limactl shell "$MSL_INSTANCE" -- sudo apt-get upgrade -y -qq
+    echo -e "${GREEN}Packages updated.${NC}"
+}
+
+cmd_install() {
+    local package="${1:-}"
+    if [[ -z "$package" ]]; then
+        echo -e "${RED}Usage: msl install <package>${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}Installing $package...${NC}"
+    limactl shell "$MSL_INSTANCE" -- sudo apt-get install -y "$package"
+    echo -e "${GREEN}$package installed.${NC}"
+}
+
+cmd_logs() {
+    echo -e "${BLUE}MSL Logs:${NC}"
+    limactl log "$MSL_INSTANCE" 2>/dev/null || true
+}
+
+cmd_ssh() {
+    echo -e "${BLUE}SSH Connection Info:${NC}"
+    echo ""
+    echo "  Host: 127.0.0.1"
+    echo "  Port: 60022"
+    echo "  User: msl"
+    echo "  Pass: msl"
+    echo ""
+    echo "SSH command:"
+    echo -e "  ${GREEN}ssh msl@127.0.0.1 -p 60022${NC}"
+}
+
+cmd_help() {
+    usage
+}
+
+# Main
+case "${1:-help}" in
+    start)    cmd_start ;;
+    stop)     cmd_stop ;;
+    restart)  cmd_restart ;;
+    shell)    cmd_shell ;;
+    status)   cmd_status ;;
+    mount)    cmd_mount "${2:-}" ;;
+    umount)   cmd_umount "${2:-}" ;;
+    update)   cmd_update ;;
+    install)  cmd_install "${2:-}" ;;
+    logs)     cmd_logs ;;
+    ssh)      cmd_ssh ;;
+    help|--help|-h)  usage ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

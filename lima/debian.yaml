@@ -1,0 +1,104 @@
+# macOS Subsystem for Linux - Debian VM Configuration
+# https://github.com/zhangpipi/macOS-Subsystem-Linux
+
+# VM Type: Apple Virtualization Framework (best for M1/M2/M3/M4)
+vmType: vz
+
+# Rosetta emulation for x86_64 binaries (optional)
+rosetta:
+  enabled: true
+  mountType: virtiofs
+
+# CPU and Memory
+cpus: 4
+memory: "1GiB"
+
+# Disk (will be expanded on first boot)
+disk: "20GiB"
+
+# Alpine-based Debian image (lightweight)
+images:
+  - location: "https://cloud.debian.org/images/cloud/bookworm/daily/latest/debian-12-genericcloud-arm64.qcow2"
+    arch: "aarch64"
+
+# Cloud-init configuration
+cloud-init:
+  - |
+    #cloud-config
+    package_update: true
+    package_upgrade: true
+    packages:
+      - ntfs-3g
+      - fuse3
+      - sshfs
+      - htop
+      - curl
+      - wget
+      - vim
+      - git
+      - build-essential
+      - sudo
+
+    # Create user
+    users:
+      - name: msl
+        groups: sudo,docker
+        shell: /bin/bash
+        sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+        lock_passwd: false
+
+    # Set password (default: msl)
+    chpasswd:
+      list: |
+        msl:msl
+      expire: false
+
+    # Enable SSH
+    ssh_pwauth: true
+
+    # Mount points
+    mounts:
+      - location: /mnt/host
+        writable: true
+
+    # Run commands after boot
+    runcmd:
+      - systemctl enable ssh
+      - systemctl start ssh
+      - mkdir -p /mnt/ntfs
+      - mkdir -p /mnt/host
+      - echo "msl ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/msl
+
+# Port forwarding
+portForwards:
+  - guestPort: 22
+    hostIP: "127.0.0.1"
+    hostPort: 60022
+
+# SSH configuration
+ssh:
+  localPort: 60022
+  forwardAgent: true
+
+# Mount type for host directories
+mountType: virtiofs
+
+# Additional mounts (user home directory)
+mounts:
+  - location: "~"
+    writable: true
+  - location: "/tmp/msl-share"
+    writable: true
+
+# Network configuration
+networks:
+  - vzNAT
+
+# DNS configuration
+dns:
+  - 8.8.8.8
+  - 8.8.4.4
+
+# Container engine (optional, can be disabled)
+containerEngine:
+  system: false
