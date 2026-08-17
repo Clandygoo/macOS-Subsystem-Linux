@@ -1,0 +1,277 @@
+#!/bin/bash
+# MSL MCP Server - AI Agent 接口
+# 让 AI Agents 可以调用 MSL 功能
+
+set -e
+
+MSL_INSTANCE="msl"
+MSL_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# 颜色
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# 日志函数
+log() {
+    echo "[MSL] $1" >&2
+}
+
+# 错误处理
+error() {
+    echo "{\"error\": \"$1\"}"
+    exit 1
+}
+
+# 检查 VM 状态
+check_vm() {
+    if ! limactl status "$MSL_INSTANCE" 2>/dev/null | grep -q "Running"; then
+        return 1
+    fi
+    return 0
+}
+
+# 启动 VM
+cmd_start() {
+    log "Starting VM..."
+    if check_vm; then
+        echo "{\"status\": \"running\", \"message\": \"VM is already running\"}"
+    else
+        limactl start "$MSL_INSTANCE" 2>/dev/null
+        echo "{\"status\": \"started\", \"message\": \"VM started successfully\"}"
+    fi
+}
+
+# 停止 VM
+cmd_stop() {
+    log "Stopping VM..."
+    limactl stop "$MSL_INSTANCE" 2>/dev/null
+    echo "{\"status\": \"stopped\", \"message\": \"VM stopped\"}"
+}
+
+# 获取状态
+cmd_status() {
+    if check_vm; then
+        local cpu_info
+        local mem_info
+        local disk_info
+        
+        cpu_info=$(limactl shell "$MSL_INSTANCE" -- nproc 2>/dev/null || echo "unknown")
+        mem_info=$(limactl shell "$MSL_INSTANCE" -- free -m 2>/dev/null | grep Mem | awk '{print $2}' || echo "unknown")
+        disk_info=$(limactl shell "$MSL_INSTANCE" -- df -h / 2>/dev/null | tail -1 | awk '{print $2}' || echo "unknown")
+        
+        echo "{\"status\": \"running\", \"cpu\": \"$cpu_info\", \"memory_mb\": \"$mem_info\", \"disk\": \"$disk_info\"}"
+    else
+        echo "{\"status\": \"stopped\"}"
+    fi
+}
+
+# 执行命令
+cmd_exec() {
+    local command="${1:-}"
+    if [[ -z "$command" ]]; then
+        error "No command provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Executing: $command"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- bash -c "$command" 2>&1)
+    local exit_code=$?
+    
+    echo "{\"exit_code\": $exit_code, \"output\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 执行 Python 代码
+cmd_python() {
+    local code="${1:-}"
+    if [[ -z "$code" ]]; then
+        error "No Python code provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Executing Python code"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- python3 -c "$code" 2>&1)
+    local exit_code=$?
+    
+    echo "{\"exit_code\": $exit_code, \"output\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 执行 Node.js 代码
+cmd_node() {
+    local code="${1:-}"
+    if [[ -z "$code" ]]; then
+        error "No Node.js code provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Executing Node.js code"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- node -e "$code" 2>&1)
+    local exit_code=$?
+    
+    echo "{\"exit_code\": $exit_code, \"output\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 安装包
+cmd_install() {
+    local package="${1:-}"
+    if [[ -z "$package" ]]; then
+        error "No package name provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Installing package: $package"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- sudo apt-get install -y "$package" 2>&1)
+    local exit_code=$?
+    
+    echo "{\"exit_code\": $exit_code, \"package\": \"$package\", \"output\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 挂载 NTFS
+cmd_mount_ntfs() {
+    local disk="${1:-}"
+    if [[ -z "$disk" ]]; then
+        error "No disk path provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Mounting NTFS disk: $disk"
+    
+    # 在 macOS 上挂载
+    diskutil mount "$disk" 2>/dev/null || true
+    
+    # 创建 VM 挂载点
+    local disk_name
+    disk_name=$(basename "$disk")
+    local vm_mount="/mnt/ntfs/$disk_name"
+    
+    limactl shell "$MSL_INSTANCE" -- sudo mkdir -p "$vm_mount" 2>/dev/null
+    
+    echo "{\"status\": \"mounted\", \"disk\": \"$disk\", \"mount_point\": \"$vm_mount\"}"
+}
+
+# 列出文件
+cmd_list_files() {
+    local path="${1:-/}"
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Listing files: $path"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- ls -la "$path" 2>&1)
+    
+    echo "{\"path\": \"$path\", \"output\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 读取文件
+cmd_read_file() {
+    local file="${1:-}"
+    if [[ -z "$file" ]]; then
+        error "No file path provided"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Reading file: $file"
+    local output
+    output=$(limactl shell "$MSL_INSTANCE" -- cat "$file" 2>&1)
+    
+    echo "{\"file\": \"$file\", \"content\": $(echo "$output" | jq -Rs .)}"
+}
+
+# 写入文件
+cmd_write_file() {
+    local file="${1:-}"
+    local content="${2:-}"
+    
+    if [[ -z "$file" || -z "$content" ]]; then
+        error "File path and content required"
+    fi
+    
+    if ! check_vm; then
+        error "VM is not running. Start it with: msl-mcp start"
+    fi
+    
+    log "Writing file: $file"
+    
+    # 使用 base64 编码传输内容
+    local encoded
+    encoded=$(echo "$content" | base64)
+    
+    limactl shell "$MSL_INSTANCE" -- bash -c "echo '$encoded' | base64 -d > '$file'" 2>&1
+    
+    echo "{\"status\": \"written\", \"file\": \"$file\"}"
+}
+
+# 获取帮助
+cmd_help() {
+    cat << 'EOF'
+MSL MCP Server - AI Agent Interface
+
+Commands:
+  start                   Start the Linux VM
+  stop                    Stop the Linux VM
+  status                  Get VM status
+  exec <command>          Execute a shell command
+  python <code>           Execute Python code
+  node <code>             Execute Node.js code
+  install <package>       Install a package
+  mount-ntfs <disk>       Mount an NTFS disk
+  list-files <path>       List files in directory
+  read-file <file>        Read file contents
+  write-file <file> <content>  Write to a file
+  help                    Show this help
+
+Examples:
+  msl-mcp start
+  msl-mcp exec "ls -la /home"
+  msl-mcp python "print('Hello from Linux!')"
+  msl-mcp install vim
+  msl-mcp mount-ntfs /dev/disk2s1
+EOF
+}
+
+# 主入口
+case "${1:-help}" in
+    start)          cmd_start ;;
+    stop)           cmd_stop ;;
+    status)         cmd_status ;;
+    exec)           cmd_exec "${2:-}" ;;
+    python)         cmd_python "${2:-}" ;;
+    node)           cmd_node "${2:-}" ;;
+    install)        cmd_install "${2:-}" ;;
+    mount-ntfs)     cmd_mount_ntfs "${2:-}" ;;
+    list-files)     cmd_list_files "${2:-}" ;;
+    read-file)      cmd_read_file "${2:-}" ;;
+    write-file)     cmd_write_file "${2:-}" "${3:-}" ;;
+    help|--help|-h) cmd_help ;;
+    *)
+        echo "{\"error\": \"Unknown command: $1\"}"
+        cmd_help
+        exit 1
+        ;;
+esac

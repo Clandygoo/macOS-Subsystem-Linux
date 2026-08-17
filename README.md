@@ -148,6 +148,75 @@ By default, your home directory is mounted at `/home/msl/host` in the VM.
 ./uninstall.sh
 ```
 
+## AI Agent Integration (MSL MCP Server)
+
+MSL 提供 MCP Server，让 AI Agents（如 OpenCode、Claude Desktop 等）可以调用 Linux VM 功能。
+
+### 安装 MCP Server
+
+```bash
+cd mcp
+npm install
+```
+
+### 配置到 OpenCode
+
+在 `~/.config/opencode/opencode.json` 中添加：
+
+```json
+{
+  "mcp": {
+    "msl": {
+      "command": "node",
+      "args": ["/path/to/macOS-Subsystem-Linux/mcp/server.js"]
+    }
+  }
+}
+```
+
+### 可用工具
+
+| 工具 | 描述 | 参数 |
+|------|------|------|
+| `msl_start` | 启动 VM | - |
+| `msl_stop` | 停止 VM | - |
+| `msl_status` | 获取状态 | - |
+| `msl_exec` | 执行命令 | `command` |
+| `msl_python` | 执行 Python | `code` |
+| `msl_node` | 执行 Node.js | `code` |
+| `msl_install` | 安装软件包 | `package` |
+| `msl_mount_ntfs` | 挂载 NTFS | `disk` |
+| `msl_list_files` | 列出文件 | `path` |
+| `msl_read_file` | 读取文件 | `file` |
+| `msl_write_file` | 写入文件 | `file`, `content` |
+| `msl_run_python_script` | 运行 Python 脚本 | `filename`, `code` |
+
+### 示例：AI Agent 调用
+
+```javascript
+// AI Agent 可以这样调用
+await client.callTool({
+  name: "msl_python",
+  arguments: {
+    code: "import sys; print(f'Python {sys.version} on Linux!')"
+  }
+});
+
+await client.callTool({
+  name: "msl_exec",
+  arguments: {
+    command: "uname -a"
+  }
+});
+
+await client.callTool({
+  name: "msl_install",
+  arguments: {
+    package: "numpy"
+  }
+});
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -161,3 +230,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Lima](https://lima-vm.io/) - Linux VMs on macOS
 - [ntfs-3g](https://github.com/tuxera/ntfs-3g) - NTFS read/write support
 - [Apple Virtualization Framework](https://developer.apple.com/documentation/virtualization)
+- [Model Context Protocol](https://modelcontextprotocol.io/) - AI Agent 接口标准
