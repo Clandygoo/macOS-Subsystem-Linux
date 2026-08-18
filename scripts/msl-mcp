@@ -27,10 +27,12 @@ error() {
 
 # 检查 VM 状态
 check_vm() {
-    if ! limactl status "$MSL_INSTANCE" 2>/dev/null | grep -q "Running"; then
-        return 1
+    local status
+    status=$(limactl list --format json 2>/dev/null | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [[ "$status" == "Running" ]]; then
+        return 0
     fi
-    return 0
+    return 1
 }
 
 # 启动 VM
