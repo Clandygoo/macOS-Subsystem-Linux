@@ -1,0 +1,35 @@
+name: MSLFileManager
+options:
+  bundleIdPrefix: com.Clandygoo
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    PRODUCT_NAME: MSLFileManager
+    PRODUCT_BUNDLE_IDENTIFIER: com.Clandygoo.MSLFileManager
+    INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
+    CODE_SIGN_ENTITLEMENTS: MSLFileManager/MSLFileManager.entitlements
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  MSLFileManager:
+    type: application
+    platform: macOS
+    sources:
+      - path: MSLFileManager
+        excludes:
+          - "**/*.entitlements"
+    settings:
+      base:
+        INFOPLIST_KEY_NSMainNibFile: ""
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        CODE_SIGN_ENTITLEMENTS: MSLFileManager/MSLFileManager.entitlements
+    dependencies:
+      - framework: DiskArbitration.framework
+        embed: false
