@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
     @Published var isPreviewVisible: Bool = true
     @Published var isAIAssistantVisible: Bool = false
     @Published var isLoading: Bool = false
+    @Published var isVMStarting: Bool = true
     @AppStorage("language") var language: String = Locale.current.language.languageCode?.identifier == "zh" ? "zh" : "en"
 
     @Published var tabs: [FileTab] = [FileTab(title: "Home", path: NSHomeDirectory())]

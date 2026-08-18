@@ -12,7 +12,9 @@ struct MSLFileManagerApp: App {
                 .frame(minWidth: 800, minHeight: 500)
                 .onAppear {
                     Task {
-                        await appState.vmLifecycle.refreshStatus()
+                        await appState.vmLifecycle.autoStartIfNeeded()
+                        appState.vmStatus = appState.vmLifecycle.status
+                        appState.isVMStarting = false
                         await appState.diskMonitor.refreshDisks()
                     }
                 }

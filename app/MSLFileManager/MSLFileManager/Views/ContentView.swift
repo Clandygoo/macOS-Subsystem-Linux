@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var archivePath: String?
 
     var body: some View {
+        ZStack {
         NavigationSplitView {
             VStack(spacing: 0) {
                 SidebarView(browserViewModel: browserViewModel)
@@ -105,6 +106,12 @@ struct ContentView: View {
         .task {
             await browserViewModel.loadContents(at: state.currentPath.path)
         }
+
+        if state.isVMStarting {
+            VMStartupOverlay()
+                .environmentObject(state)
+        }
+        }
     }
 }
 
@@ -146,6 +153,44 @@ struct SidebarFooterView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
+        }
+    }
+}
+
+struct VMStartupOverlay: View {
+    @EnvironmentObject private var state: AppState
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Image(systemName: "terminal.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.green)
+
+                Text("MSL")
+                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+
+                Text("Linux Subsystem")
+                    .font(.title3)
+                    .foregroundStyle(.white.opacity(0.7))
+
+                VStack(spacing: 12) {
+                    ProgressView(value: state.vmLifecycle.startupProgress)
+                        .progressViewStyle(.linear)
+                        .frame(width: 300)
+                        .tint(.green)
+
+                    Text(state.vmLifecycle.startupMessage)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .padding(40)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         }
     }
 }
