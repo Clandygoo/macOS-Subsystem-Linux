@@ -8,7 +8,7 @@ final class NTFSMountService: ObservableObject {
     private let vmCommand = VMCommandService()
 
     func autoMountAll(_ disks: [DiskInfo]) async {
-        for disk in disks where disk.isNTFS {
+        for disk in disks where disk.isLinuxCompatible {
             await mountDisk(disk)
         }
     }
@@ -22,7 +22,7 @@ final class NTFSMountService: ObservableObject {
             _ = try await lima.shell("sudo mkdir -p \(vmMountPath)")
 
             if let hostPath = disk.mountPoint?.path {
-                _ = try await lima.shell("sudo mount -t virtiofs \(hostPath) \(vmMountPath) 2>/dev/null || true")
+                _ = try await lima.shell("sudo mount -t virtiofs \"\(hostPath)\" \"\(vmMountPath)\" 2>/dev/null || true")
             }
 
             let vmDisk = VMDisk(
@@ -45,7 +45,7 @@ final class NTFSMountService: ObservableObject {
         let diskId = URL(fileURLWithPath: disk.devicePath).lastPathComponent
         mountProgress[diskId] = .unmounting
 
-        _ = try? await lima.shell("sudo umount \(disk.vmMountPath) 2>/dev/null")
+        _ = try? await lima.shell("sudo umount \"\(disk.vmMountPath)\" 2>/dev/null")
 
         mountedDisks.removeAll { $0.id == disk.id }
         mountProgress.removeValue(forKey: diskId)

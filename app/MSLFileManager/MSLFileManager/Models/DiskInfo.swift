@@ -5,7 +5,7 @@ struct DiskInfo: Identifiable, Hashable, Sendable {
     let devicePath: String
     let volumeName: String
     let filesystemType: String
-    let isNTFS: Bool
+    let isLinuxCompatible: Bool
     let mountPoint: URL?
     let size: Int64?
     let isRemovable: Bool
@@ -17,6 +17,10 @@ struct DiskInfo: Identifiable, Hashable, Sendable {
     var displaySize: String {
         guard let size else { return "Unknown" }
         return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+    }
+
+    var fsTypeDisplay: String {
+        filesystemType.uppercased()
     }
 }
 

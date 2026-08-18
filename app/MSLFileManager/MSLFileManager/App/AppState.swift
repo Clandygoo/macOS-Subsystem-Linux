@@ -10,6 +10,10 @@ final class AppState: ObservableObject {
     @Published var isPreviewVisible: Bool = true
     @Published var isAIAssistantVisible: Bool = false
     @Published var isLoading: Bool = false
+    @AppStorage("language") var language: String = Locale.current.language.languageCode?.identifier == "zh" ? "zh" : "en"
+
+    @Published var tabs: [FileTab] = [FileTab(title: "Home", path: NSHomeDirectory())]
+    @Published var activeTabID: UUID?
 
     lazy var vmLifecycle = VMLifecycleService()
     lazy var vmCommand = VMCommandService()
@@ -17,7 +21,31 @@ final class AppState: ObservableObject {
     lazy var fileSystem = UnifiedFileService()
     lazy var ntfsMountService = NTFSMountService()
 
-    init() {}
+    init() {
+        activeTabID = tabs.first?.id
+    }
+
+    var activeTab: FileTab? {
+        tabs.first { $0.id == activeTabID }
+    }
+
+    func addTab(path: String = NSHomeDirectory(), title: String = "New Tab", isRemote: Bool = false) {
+        let tab = FileTab(title: title, path: path, isRemote: isRemote)
+        tabs.append(tab)
+        activeTabID = tab.id
+    }
+
+    func closeTab(id: UUID) {
+        guard tabs.count > 1 else { return }
+        tabs.removeAll { $0.id == id }
+        if activeTabID == id {
+            activeTabID = tabs.last?.id
+        }
+    }
+
+    func switchTab(to id: UUID) {
+        activeTabID = id
+    }
 }
 
 enum VMStatus: Sendable {

@@ -2,7 +2,7 @@ import Foundation
 
 final class DiskMonitor: ObservableObject {
     @Published var allDisks: [DiskInfo] = []
-    var ntfsDisks: [DiskInfo] { allDisks.filter(\.isNTFS) }
+    var allExternalDisks: [DiskInfo] { allDisks }
     var mountedVolumes: [DiskInfo] { allDisks.filter { $0.mountPoint != nil } }
 
     func start() {
@@ -24,17 +24,20 @@ final class DiskMonitor: ObservableObject {
                 let partitions = disk["Partitions"] as? [[String: Any]] ?? []
 
                 for part in partitions {
-                    guard let volName = part["VolumeName"] as? String else { continue }
+                    let volName = part["VolumeName"] as? String ?? ""
                     let fsType = part["FilesystemType"] as? String ?? ""
                     let mount = part["MountPoint"] as? String
-                    let isNTFS = fsType.lowercased().contains("ntfs")
+                    let partNum = part["PartitionNumber"] as? Int ?? 0
+                    let isLinuxCompatible = Self.isLinuxCompatible(fsType)
+
+                    guard !fsType.isEmpty, isLinuxCompatible else { continue }
 
                     result.append(DiskInfo(
-                        id: "/dev/\(devID)s\(part["PartitionNumber"] ?? "")",
+                        id: "/dev/\(devID)s\(partNum)",
                         devicePath: "/dev/\(devID)",
                         volumeName: volName,
                         filesystemType: fsType,
-                        isNTFS: isNTFS,
+                        isLinuxCompatible: isLinuxCompatible,
                         mountPoint: mount.map { URL(fileURLWithPath: $0) },
                         size: size,
                         isRemovable: true
@@ -43,5 +46,13 @@ final class DiskMonitor: ObservableObject {
             }
             allDisks = result
         }
+    }
+
+    static func isLinuxCompatible(_ fsType: String) -> Bool {
+        let lower = fsType.lowercased()
+        let compatible = ["ntfs", "ext2", "ext3", "ext4", "btrfs", "xfs",
+                          "fat32", "vfat", "exfat", "apfs", "hfs+", "hfs",
+                          "udf", "iso9660"]
+        return compatible.contains { lower.contains($0) }
     }
 }

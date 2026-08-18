@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @EnvironmentObject private var state: AppState
+    @ObservedObject var browserViewModel: BrowserViewModel
 
     var body: some View {
         List(selection: Binding(
@@ -9,28 +10,26 @@ struct SidebarView: View {
             set: { state.sidebarSelection = $0 }
         )) {
             Section("Favorites") {
-                SidebarItemRow(item: .favorites, icon: "star.fill", color: .yellow)
-                SidebarItemRow(item: .recent, icon: "clock.fill", color: .gray)
-                SidebarItemRow(item: .applications, icon: "app.fill", color: .blue)
+                SidebarItemRow(item: .home, icon: "house.fill", color: .purple)
                 SidebarItemRow(item: .desktop, icon: "desktopcomputer", color: .orange)
                 SidebarItemRow(item: .documents, icon: "doc.fill", color: .blue)
                 SidebarItemRow(item: .downloads, icon: "arrow.down.circle.fill", color: .green)
-                SidebarItemRow(item: .home, icon: "house.fill", color: .purple)
+                SidebarItemRow(item: .applications, icon: "app.fill", color: .blue)
             }
 
             Section("Linux VM") {
                 SidebarItemRow(item: .vm, icon: "terminal.fill", color: .green)
 
-                if state.diskMonitor.ntfsDisks.isEmpty {
-                    Text("No NTFS disks")
+                if state.diskMonitor.allExternalDisks.isEmpty {
+                    Text("No external disks")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(state.diskMonitor.ntfsDisks) { disk in
+                    ForEach(state.diskMonitor.allExternalDisks) { disk in
                         SidebarItemRow(
                             item: .vmDisk(disk.id),
                             icon: "externaldrive.fill",
-                            color: .orange
+                            color: disk.isLinuxCompatible ? .orange : .gray
                         )
                     }
                 }

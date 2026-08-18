@@ -2,11 +2,12 @@ import SwiftUI
 
 struct PreviewPanelView: View {
     @EnvironmentObject private var state: AppState
+    @ObservedObject var viewModel: BrowserViewModel
 
     var body: some View {
         VStack(spacing: 16) {
             if let itemId = state.selectedItems.first,
-               let item = findItem(id: itemId) {
+               let item = viewModel.items.first(where: { $0.id == itemId }) {
                 Image(nsImage: item.icon)
                     .resizable()
                     .frame(width: 64, height: 64)
@@ -50,9 +51,5 @@ struct PreviewPanelView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .controlBackgroundColor))
-    }
-
-    private func findItem(id: String) -> FileItem? {
-        nil
     }
 }

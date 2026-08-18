@@ -22,14 +22,14 @@ struct DiskManagerView: View {
 
             Divider()
 
-            if state.diskMonitor.ntfsDisks.isEmpty {
+            if state.diskMonitor.allExternalDisks.isEmpty {
                 ContentUnavailableView(
-                    "No NTFS Disks",
+                    "No External Disks",
                     systemImage: "externaldrive.badge.xmark",
-                    description: Text("Connect an NTFS-formatted disk")
+                    description: Text("Connect an external disk")
                 )
             } else {
-                List(state.diskMonitor.ntfsDisks, selection: $selectedDisk) { disk in
+                List(state.diskMonitor.allExternalDisks, selection: $selectedDisk) { disk in
                     DiskRowView(disk: disk)
                         .tag(disk)
                 }
@@ -40,7 +40,7 @@ struct DiskManagerView: View {
             HStack {
                 Button("Mount All") {
                     Task {
-                        await state.ntfsMountService.autoMountAll(state.diskMonitor.ntfsDisks)
+                        await state.ntfsMountService.autoMountAll(state.diskMonitor.allExternalDisks)
                     }
                 }
 
@@ -71,7 +71,7 @@ struct DiskRowView: View {
     var body: some View {
         HStack {
             Image(systemName: "externaldrive.fill")
-                .foregroundStyle(.orange)
+                .foregroundStyle(disk.isLinuxCompatible ? .orange : .gray)
                 .frame(width: 24)
 
             VStack(alignment: .leading) {
@@ -84,14 +84,12 @@ struct DiskRowView: View {
 
             Spacer()
 
-            if disk.isNTFS {
-                Text("NTFS")
-                    .font(.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.2))
-                    .cornerRadius(4)
-            }
+            Text(disk.fsTypeDisplay)
+                .font(.caption)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(disk.isLinuxCompatible ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                .cornerRadius(4)
 
             if disk.mountPoint != nil {
                 Image(systemName: "checkmark.circle.fill")

@@ -27,6 +27,7 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @AppStorage("showHiddenFiles") private var showHiddenFiles = false
     @AppStorage("defaultViewMode") private var defaultViewMode = "list"
+    @AppStorage("language") private var language = "en"
 
     var body: some View {
         Form {
@@ -36,6 +37,11 @@ struct GeneralSettingsView: View {
                 Text("List").tag("list")
                 Text("Icons").tag("icon")
                 Text("Columns").tag("column")
+            }
+
+            Picker("Language", selection: $language) {
+                Text("English").tag("en")
+                Text("简体中文").tag("zh")
             }
         }
         .padding()

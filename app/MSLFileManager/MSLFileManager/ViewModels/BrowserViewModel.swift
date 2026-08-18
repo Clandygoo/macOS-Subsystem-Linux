@@ -13,6 +13,7 @@ final class BrowserViewModel: ObservableObject {
 
     private let fileSystem = UnifiedFileService()
     private var currentTask: Task<Void, Never>?
+    private var isNavigatingBackForward = false
 
     var canGoBack: Bool { navigationIndex > 0 }
     var canGoForward: Bool { navigationIndex < navigationHistory.count - 1 }
@@ -34,13 +35,23 @@ final class BrowserViewModel: ObservableObject {
             items = sortItems(newItems.filter { showHiddenFiles || !$0.isHidden })
             currentPath = path
 
-            if navigationHistory.isEmpty || navigationHistory[navigationIndex] != path {
-                navigationHistory = Array(navigationHistory.prefix(navigationIndex + 1))
-                navigationHistory.append(path)
-                navigationIndex = navigationHistory.count - 1
+            if !isNavigatingBackForward {
+                if navigationHistory.isEmpty || navigationHistory[navigationIndex] != path {
+                    navigationHistory = Array(navigationHistory.prefix(navigationIndex + 1))
+                    navigationHistory.append(path)
+                    navigationIndex = navigationHistory.count - 1
+                }
             }
+            isNavigatingBackForward = false
         } catch {
             items = []
+        }
+    }
+
+    func navigateTo(_ path: String, isRemote: Bool = false) {
+        isNavigatingBackForward = false
+        Task {
+            await loadContents(at: path, isRemote: isRemote)
         }
     }
 
@@ -48,8 +59,9 @@ final class BrowserViewModel: ObservableObject {
         guard canGoBack else { return }
         navigationIndex -= 1
         let path = navigationHistory[navigationIndex]
+        isNavigatingBackForward = true
         Task {
-            let isRemote = path.hasPrefix("/mnt/") || path.hasPrefix("/Volumes/")
+            let isRemote = isRemotePath(path)
             await loadContents(at: path, isRemote: isRemote)
         }
     }
@@ -58,25 +70,33 @@ final class BrowserViewModel: ObservableObject {
         guard canGoForward else { return }
         navigationIndex += 1
         let path = navigationHistory[navigationIndex]
+        isNavigatingBackForward = true
         Task {
-            let isRemote = path.hasPrefix("/mnt/") || path.hasPrefix("/Volumes/")
+            let isRemote = isRemotePath(path)
             await loadContents(at: path, isRemote: isRemote)
         }
     }
 
     func goToParent() {
         let parent = (currentPath as NSString).deletingLastPathComponent
+        guard parent != currentPath else { return }
+        isNavigatingBackForward = false
         Task {
-            await loadContents(at: parent, isRemote: currentPath.hasPrefix("/mnt/"))
+            await loadContents(at: parent, isRemote: isRemotePath(parent))
         }
     }
 
     func refresh() {
         let path = currentPath
+        let isRemote = isRemotePath(path)
+        isNavigatingBackForward = true
         Task {
-            let isRemote = path.hasPrefix("/mnt/") || path.hasPrefix("/Volumes/")
             await loadContents(at: path, isRemote: isRemote)
         }
+    }
+
+    func isRemotePath(_ path: String) -> Bool {
+        return path.hasPrefix("/mnt/") || path.hasPrefix("/Volumes/Linux")
     }
 
     private func sortItems(_ items: [FileItem]) -> [FileItem] {
