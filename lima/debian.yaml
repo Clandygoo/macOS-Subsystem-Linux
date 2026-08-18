@@ -1,5 +1,5 @@
 # macOS Subsystem for Linux - Debian VM Configuration
-# https://github.com/zhangpipi/macOS-Subsystem-Linux
+# https://github.com/Clandygoo/macOS-Subsystem-Linux
 
 # VM Type: Apple Virtualization Framework (best for M1/M2/M3/M4)
 vmType: vz
@@ -20,48 +20,44 @@ images:
   - location: "https://cloud.debian.org/images/cloud/bookworm/daily/latest/debian-12-genericcloud-arm64-daily.qcow2"
     arch: "aarch64"
 
-# Cloud-init configuration
-cloudInit:
-  - |
-    #cloud-config
-    package_update: true
-    package_upgrade: true
-    packages:
-      - ntfs-3g
-      - fuse3
-      - sshfs
-      - htop
-      - curl
-      - wget
-      - vim
-      - git
-      - build-essential
-      - sudo
+# Provisioning scripts
+provision:
+  # Install packages
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y \
+        ntfs-3g \
+        fuse3 \
+        sshfs \
+        htop \
+        curl \
+        wget \
+        vim \
+        git \
+        build-essential \
+        sudo
 
-    # Create user
-    users:
-      - name: msl
-        groups: sudo,docker
-        shell: /bin/bash
-        sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-        lock_passwd: false
-
-    # Set password (default: msl)
-    chpasswd:
-      list: |
-        msl:msl
-      expire: false
-
-    # Enable SSH
-    ssh_pwauth: true
-
-    # Run commands after boot
-    runcmd:
-      - systemctl enable ssh
-      - systemctl start ssh
-      - mkdir -p /mnt/ntfs
-      - mkdir -p /mnt/host
-      - echo "msl ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/msl
+  # Create user and configure
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      # Create msl user
+      useradd -m -s /bin/bash -G sudo msl || true
+      echo "msl:msl" | chpasswd
+      echo "msl ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/msl
+      chmod 0440 /etc/sudoers.d/msl
+      # Enable SSH
+      systemctl enable ssh
+      systemctl start ssh
+      # Create directories
+      mkdir -p /mnt/ntfs
+      mkdir -p /mnt/host
+      chmod 755 /mnt/ntfs /mnt/host
 
 # SSH configuration
 ssh:
