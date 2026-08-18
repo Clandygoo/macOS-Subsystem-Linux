@@ -1,17 +1,15 @@
 import Foundation
 import AppKit
 
-@Observable
-@MainActor
-final class BrowserViewModel {
-    var items: [FileItem] = []
-    var isLoading: Bool = false
-    var sortOption: SortOption = .name
-    var sortAscending: Bool = true
-    var showHiddenFiles: Bool = false
-    var currentPath: String = "/"
-    var navigationHistory: [String] = []
-    var navigationIndex: Int = -1
+final class BrowserViewModel: ObservableObject {
+    @Published var items: [FileItem] = []
+    @Published var isLoading: Bool = false
+    @Published var sortOption: SortOption = .name
+    @Published var sortAscending: Bool = true
+    @Published var showHiddenFiles: Bool = false
+    @Published var currentPath: String = "/"
+    @Published var navigationHistory: [String] = []
+    @Published var navigationIndex: Int = -1
 
     private let fileSystem = UnifiedFileService()
     private var currentTask: Task<Void, Never>?

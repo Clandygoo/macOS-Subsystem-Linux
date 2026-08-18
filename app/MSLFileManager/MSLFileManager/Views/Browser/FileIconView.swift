@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct FileIconView: View {
-    @Environment(AppState.self) private var state
-    @Bindable var viewModel: BrowserViewModel
+    @EnvironmentObject private var state: AppState
+    @ObservedObject var viewModel: BrowserViewModel
 
     private let columns = [
         GridItem(.adaptive(minimum: 80, maximum: 120), spacing: 16)

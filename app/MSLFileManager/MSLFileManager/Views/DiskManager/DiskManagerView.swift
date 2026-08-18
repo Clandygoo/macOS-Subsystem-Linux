@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DiskManagerView: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
     @State private var selectedDisk: DiskInfo?
 
     var body: some View {

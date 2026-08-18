@@ -2,12 +2,13 @@ import SwiftUI
 
 @main
 struct MSLFileManagerApp: App {
-    @State private var appState = AppState()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(appState)
+                .environmentObject(appState)
                 .frame(minWidth: 800, minHeight: 500)
                 .onAppear {
                     Task {
@@ -17,39 +18,28 @@ struct MSLFileManagerApp: App {
                 }
         }
         .defaultSize(width: 1200, height: 800)
-        .commands {
-            CommandGroup(after: .pasteboard) {
-                ViewModePicker()
-            }
-
-            CommandGroup(after: .newItem) {
-                Button("New Window") {
-                    NSApplication.shared.keyWindow?
-                        .contentViewController?
-                        .performSegue(
-                            withIdentifier: "newWindow",
-                            sender: nil
-                        )
-                }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-            }
-        }
 
         Settings {
             SettingsView()
-                .environment(appState)
+                .environmentObject(appState)
         }
 
         Window("AI Assistant", id: "ai-assistant") {
             AIAssistantPanel()
-                .environment(appState)
+                .environmentObject(appState)
         }
         .defaultSize(width: 400, height: 600)
 
         Window("Disk Manager", id: "disk-manager") {
             DiskManagerView()
-                .environment(appState)
+                .environmentObject(appState)
         }
         .defaultSize(width: 500, height: 400)
+    }
+}
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct FileColumnView: View {
-    @Environment(AppState.self) private var state
-    @Bindable var viewModel: BrowserViewModel
+    @EnvironmentObject private var state: AppState
+    @ObservedObject var viewModel: BrowserViewModel
     @State private var columnPaths: [String] = []
 
     var body: some View {

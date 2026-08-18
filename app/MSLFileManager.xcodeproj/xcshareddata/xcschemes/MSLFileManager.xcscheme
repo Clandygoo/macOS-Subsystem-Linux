@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A8000001"
+               BlueprintIdentifier = "A5000001"
                BuildableName = "MSLFileManager.app"
                BlueprintName = "MSLFileManager"
                ReferencedContainer = "container:MSLFileManager.xcodeproj">
@@ -43,7 +43,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A8000001"
+            BlueprintIdentifier = "A5000001"
             BuildableName = "MSLFileManager.app"
             BlueprintName = "MSLFileManager"
             ReferencedContainer = "container:MSLFileManager.xcodeproj">
@@ -60,7 +60,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A8000001"
+            BlueprintIdentifier = "A5000001"
             BuildableName = "MSLFileManager.app"
             BlueprintName = "MSLFileManager"
             ReferencedContainer = "container:MSLFileManager.xcodeproj">

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
 
     var body: some View {
         TabView {
@@ -43,7 +43,7 @@ struct GeneralSettingsView: View {
 }
 
 struct VMSettingsView: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
     @AppStorage("vmCPUs") private var vmCPUs = 4
     @AppStorage("vmMemory") private var vmMemory = "1GiB"
     @AppStorage("vmDisk") private var vmDisk = "20GiB"

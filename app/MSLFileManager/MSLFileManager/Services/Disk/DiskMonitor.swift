@@ -1,9 +1,7 @@
 import Foundation
 
-@Observable
-@MainActor
-final class DiskMonitor {
-    var allDisks: [DiskInfo] = []
+final class DiskMonitor: ObservableObject {
+    @Published var allDisks: [DiskInfo] = []
     var ntfsDisks: [DiskInfo] { allDisks.filter(\.isNTFS) }
     var mountedVolumes: [DiskInfo] { allDisks.filter { $0.mountPoint != nil } }
 

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SortMenu: View {
-    @Bindable var viewModel: BrowserViewModel
+    @ObservedObject var viewModel: BrowserViewModel
 
     var body: some View {
         Menu {

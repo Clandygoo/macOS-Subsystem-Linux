@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AIAssistantPanel: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
     @State private var messageText = ""
     @State private var messages: [ChatMessage] = []
 

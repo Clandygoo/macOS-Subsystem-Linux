@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
 
     var body: some View {
         List(selection: Binding(

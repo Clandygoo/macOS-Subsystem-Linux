@@ -1,10 +1,8 @@
 import Foundation
 
-@Observable
-@MainActor
-final class VMLifecycleService {
-    var status: VMStatus = .unknown
-    var isStarting: Bool = false
+final class VMLifecycleService: ObservableObject {
+    @Published var status: VMStatus = .unknown
+    @Published var isStarting: Bool = false
 
     private let lima = LimaService()
 

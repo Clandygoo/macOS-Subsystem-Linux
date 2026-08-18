@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct FileListView: View {
-    @Environment(AppState.self) private var state
-    @Bindable var viewModel: BrowserViewModel
+    @EnvironmentObject private var state: AppState
+    @ObservedObject var viewModel: BrowserViewModel
 
     var body: some View {
         Table(viewModel.items, selection: Binding(

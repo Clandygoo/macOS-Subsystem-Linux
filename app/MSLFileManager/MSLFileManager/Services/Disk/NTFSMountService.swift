@@ -1,10 +1,8 @@
 import Foundation
 
-@Observable
-@MainActor
-final class NTFSMountService {
-    var mountedDisks: [VMDisk] = []
-    var mountProgress: [String: MountState] = [:]
+final class NTFSMountService: ObservableObject {
+    @Published var mountedDisks: [VMDisk] = []
+    @Published var mountProgress: [String: MountState] = [:]
 
     private let lima = LimaService()
     private let vmCommand = VMCommandService()

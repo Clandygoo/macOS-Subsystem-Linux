@@ -1,7 +1,15 @@
 import SwiftUI
 
 struct ViewModePicker: View {
-    @Environment(AppState.self) private var state
+    @EnvironmentObject private var state: AppState
+
+    var body: some View {
+        ViewModePickerContent(state: state)
+    }
+}
+
+struct ViewModePickerContent: View {
+    @ObservedObject var state: AppState
 
     var body: some View {
         Picker("View Mode", selection: Binding(

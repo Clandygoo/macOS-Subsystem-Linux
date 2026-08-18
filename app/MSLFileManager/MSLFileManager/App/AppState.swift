@@ -1,31 +1,23 @@
 import Foundation
 import SwiftUI
 
-@Observable
-@MainActor
-final class AppState {
-    var selectedViewMode: ViewMode = .list
-    var currentPath: URL = .homeDirectory
-    var selectedItems: Set<String> = []
-    var vmStatus: VMStatus = .unknown
-    var sidebarSelection: SidebarItem? = .favorites
-    var isPreviewVisible: Bool = true
-    var isAIAssistantVisible: Bool = false
-    var isLoading: Bool = false
+final class AppState: ObservableObject {
+    @Published var selectedViewMode: ViewMode = .list
+    @Published var currentPath: URL = .homeDirectory
+    @Published var selectedItems: Set<String> = []
+    @Published var vmStatus: VMStatus = .unknown
+    @Published var sidebarSelection: SidebarItem? = .favorites
+    @Published var isPreviewVisible: Bool = true
+    @Published var isAIAssistantVisible: Bool = false
+    @Published var isLoading: Bool = false
 
-    let vmLifecycle: VMLifecycleService
-    let vmCommand: VMCommandService
-    let diskMonitor: DiskMonitor
-    let fileSystem: UnifiedFileService
-    let ntfsMountService: NTFSMountService
+    lazy var vmLifecycle = VMLifecycleService()
+    lazy var vmCommand = VMCommandService()
+    lazy var diskMonitor = DiskMonitor()
+    lazy var fileSystem = UnifiedFileService()
+    lazy var ntfsMountService = NTFSMountService()
 
-    init() {
-        self.vmLifecycle = VMLifecycleService()
-        self.vmCommand = VMCommandService()
-        self.diskMonitor = DiskMonitor()
-        self.fileSystem = UnifiedFileService()
-        self.ntfsMountService = NTFSMountService()
-    }
+    init() {}
 }
 
 enum VMStatus: Sendable {
