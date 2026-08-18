@@ -39,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		A2000001 /* MSLFileManagerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MSLFileManagerApp.swift; sourceTree = "<group>"; };
+		A2000030 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000002 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A2000003 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A2000004 /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
@@ -94,6 +95,7 @@
 			children = (
 				A2000001 /* MSLFileManagerApp.swift */,
 				A2000029 /* MSLFileManager.entitlements */,
+				A2000030 /* Info.plist */,
 				A4000010 /* App */,
 				A4000011 /* Models */,
 				A4000012 /* ViewModels */,
@@ -455,6 +457,8 @@
 				CODE_SIGN_ENTITLEMENTS = MSLFileManager/MSLFileManager.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MSLFileManager/App/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMainNibFile = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -476,6 +480,8 @@
 				CODE_SIGN_ENTITLEMENTS = MSLFileManager/MSLFileManager.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MSLFileManager/App/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMainNibFile = "";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
