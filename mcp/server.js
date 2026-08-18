@@ -46,8 +46,22 @@ async function runCommand(command, timeout = 30000) {
 
 // 检查 VM 状态
 async function checkVMStatus() {
-  const result = await runCommand(`limactl status ${MSL_INSTANCE} 2>/dev/null`);
-  return result.output.includes("Running");
+  const result = await runCommand(`limactl list --format json 2>/dev/null`);
+  try {
+    const instance = JSON.parse(result.output);
+    // limactl list --format json 返回单个对象
+    if (instance && instance.name === MSL_INSTANCE) {
+      return instance.status === "Running";
+    }
+    // 如果是数组，查找 msl 实例
+    if (Array.isArray(instance)) {
+      const msl = instance.find(i => i.name === MSL_INSTANCE);
+      return msl && msl.status === "Running";
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 // 创建服务器
