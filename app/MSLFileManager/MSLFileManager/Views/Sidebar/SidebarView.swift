@@ -4,7 +4,10 @@ struct SidebarView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        List(selection: $state.sidebarSelection) {
+        List(selection: Binding(
+            get: { state.sidebarSelection },
+            set: { state.sidebarSelection = $0 }
+        )) {
             Section("Favorites") {
                 SidebarItemRow(item: .favorites, icon: "star.fill", color: .yellow)
                 SidebarItemRow(item: .recent, icon: "clock.fill", color: .gray)

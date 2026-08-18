@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import UniformTypeIdentifiers
 
 struct FileItem: Identifiable, Sendable {
     let id: String

@@ -5,7 +5,10 @@ struct FileListView: View {
     @Bindable var viewModel: BrowserViewModel
 
     var body: some View {
-        Table(viewModel.items, selection: $state.selectedItems) {
+        Table(viewModel.items, selection: Binding(
+            get: { state.selectedItems },
+            set: { state.selectedItems = $0 }
+        )) {
             TableColumn("Name") { item in
                 HStack(spacing: 8) {
                     Image(nsImage: item.icon)
@@ -55,7 +58,7 @@ struct FileListView: View {
             }
         }
         .onChange(of: state.selectedItems) { _, newValue in
-            if let itemId = newValue.first {
+            if let _ = newValue.first {
                 state.selectedItems = newValue
             }
         }

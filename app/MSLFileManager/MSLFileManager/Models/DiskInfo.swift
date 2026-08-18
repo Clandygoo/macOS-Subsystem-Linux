@@ -1,6 +1,6 @@
 import Foundation
 
-struct DiskInfo: Identifiable, Sendable {
+struct DiskInfo: Identifiable, Hashable, Sendable {
     let id: String
     let devicePath: String
     let volumeName: String
