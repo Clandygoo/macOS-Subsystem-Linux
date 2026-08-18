@@ -46,21 +46,8 @@ struct ContentView: View {
                     }
                 }
             }
+            .toolbar(.hidden, for: .automatic)
             .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    ViewModePicker()
-
-                    SortMenu(viewModel: browserViewModel)
-
-                    Button {
-                        withAnimation {
-                            state.isPreviewVisible.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "sidebar.right")
-                    }
-                }
-
                 ToolbarItemGroup(placement: .navigation) {
                     Button {
                         browserViewModel.goBack()
@@ -80,6 +67,20 @@ struct ContentView: View {
                         browserViewModel.goToParent()
                     } label: {
                         Image(systemName: "chevron.up")
+                    }
+                }
+
+                ToolbarItemGroup(placement: .primaryAction) {
+                    ViewModePicker()
+
+                    SortMenu(viewModel: browserViewModel)
+
+                    Button {
+                        withAnimation {
+                            state.isPreviewVisible.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.right")
                     }
                 }
             }

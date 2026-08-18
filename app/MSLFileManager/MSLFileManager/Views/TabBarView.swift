@@ -6,31 +6,78 @@ struct ChromeTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(state.tabs.enumerated()), id: \.element.id) { index, tab in
-                ChromeTabItem(
-                    tab: tab,
-                    isActive: tab.id == state.activeTabID,
-                    isLast: index == state.tabs.count - 1,
-                    onSelect: { state.switchTab(to: tab.id) },
-                    onClose: { state.closeTab(id: tab.id) }
-                )
-            }
+            // Navigation buttons (left side of tabs)
+            HStack(spacing: 2) {
+                Button {
+                    browserViewModel.goBack()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 28, height: 28)
+                }
+                .disabled(!browserViewModel.canGoBack)
+                .buttonStyle(.plain)
 
-            Button {
-                state.addTab()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(width: 20, height: 20)
+                Button {
+                    browserViewModel.goForward()
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 28, height: 28)
+                }
+                .disabled(!browserViewModel.canGoForward)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .padding(.leading, 2)
-            .padding(.trailing, 8)
+            .padding(.leading, 8)
+            .padding(.trailing, 4)
+
+            // Tabs
+            HStack(spacing: 0) {
+                ForEach(Array(state.tabs.enumerated()), id: \.element.id) { index, tab in
+                    ChromeTabItem(
+                        tab: tab,
+                        isActive: tab.id == state.activeTabID,
+                        isLast: index == state.tabs.count - 1,
+                        onSelect: { state.switchTab(to: tab.id) },
+                        onClose: { state.closeTab(id: tab.id) }
+                    )
+                }
+
+                Button {
+                    state.addTab()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 2)
+                .padding(.trailing, 8)
+            }
 
             Spacer()
+
+            // View mode buttons (right side)
+            HStack(spacing: 4) {
+                ViewModePicker()
+
+                SortMenu(viewModel: browserViewModel)
+
+                Button {
+                    withAnimation {
+                        state.isPreviewVisible.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.right")
+                        .font(.system(size: 13))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.trailing, 8)
         }
-        .frame(height: 36)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .frame(height: 42)
+        .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -49,36 +96,36 @@ struct ChromeTabItem: View {
     var body: some View {
         HStack(spacing: 0) {
             Image(systemName: tab.isRemote ? "externaldrive" : "folder.fill")
-                .font(.system(size: 9))
+                .font(.system(size: 11))
                 .foregroundStyle(isActive ? .white : .secondary)
-                .padding(.leading, 10)
+                .padding(.leading, 12)
 
             Text(tab.title)
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .lineLimit(1)
                 .foregroundStyle(isActive ? .white : .primary)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 8)
 
             if isHovering || isActive {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(isActive ? .white.opacity(0.7) : .secondary)
-                        .frame(width: 14, height: 14)
+                        .frame(width: 16, height: 16)
                         .background(Circle().fill(isActive ? Color.white.opacity(0.2) : Color.secondary.opacity(0.15)))
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 6)
+                .padding(.trailing, 8)
             }
         }
-        .frame(height: 28)
+        .frame(height: 32)
         .background(
             isActive
                 ? AnyShapeStyle(Color.accentColor)
                 : AnyShapeStyle(isHovering ? Color.secondary.opacity(0.15) : Color.clear)
         )
         .clipShape(TabShape())
-        .padding(.top, 4)
+        .padding(.top, 5)
         .padding(.leading, isLast ? 0 : -2)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
