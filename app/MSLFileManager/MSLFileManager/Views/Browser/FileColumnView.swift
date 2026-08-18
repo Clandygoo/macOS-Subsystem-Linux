@@ -3,63 +3,150 @@ import SwiftUI
 struct FileColumnView: View {
     @EnvironmentObject private var state: AppState
     @ObservedObject var viewModel: BrowserViewModel
-    @State private var columnPaths: [String] = []
+    @State private var columns: [[FileItem]] = []
+    @State private var selectedPerColumn: [Int: String?] = [:]
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(columnPaths.enumerated()), id: \.offset) { index, path in
+            ForEach(Array(columns.enumerated()), id: \.offset) { colIndex, items in
                 VStack(spacing: 0) {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(itemsForPath(path)) { item in
-                                FileColumnRowView(
+                            ForEach(items) { item in
+                                FileColumnRow(
                                     item: item,
-                                    isSelected: state.selectedItems.contains(item.id),
-                                    isExpanded: index < columnPaths.count - 1 && columnPaths[index + 1] == (item.remotePath ?? item.url?.path ?? "")
+                                    isSelected: selectedPerColumn[colIndex] == nil
+                                        ? false
+                                        : selectedPerColumn[colIndex]! == item.id,
+                                    isExpanded: colIndex < columns.count - 1 && selectedPerColumn[colIndex] ?? "" == item.id
                                 )
                                 .onTapGesture {
-                                    state.selectedItems = [item.id]
+                                    selectItem(item, at: colIndex)
                                 }
                                 .onTapGesture(count: 2) {
                                     if item.isDirectory {
-                                        expandColumn(at: index + 1, path: item.remotePath ?? item.url?.path ?? "")
+                                        expandToItem(item, at: colIndex)
                                     }
                                 }
                             }
                         }
                     }
-                    .frame(width: 200)
+                    .frame(minWidth: 180, idealWidth: 220, maxWidth: 300)
 
-                    if index < columnPaths.count - 1 {
+                    if colIndex < columns.count - 1 {
                         Divider()
                     }
                 }
             }
+
+            if !columns.isEmpty {
+                VStack(spacing: 0) {
+                    if let selCol = lastSelectedColumnIndex(), let item = selectedItem(in: selCol) {
+                        ScrollView {
+                            VStack(spacing: 12) {
+                                Image(nsImage: item.icon)
+                                    .resizable()
+                                    .frame(width: 128, height: 128)
+
+                                Text(item.name)
+                                    .font(.headline)
+                                    .multilineTextAlignment(.center)
+
+                                if item.isDirectory {
+                                    Text("Folder")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text(item.displaySize)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text(item.displayDate)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        ContentUnavailableView(
+                            "No Selection",
+                            systemImage: "sidebar.right",
+                            description: Text("Select a file to preview")
+                        )
+                    }
+                }
+                .frame(width: 200)
+                .background(Color(nsColor: .controlBackgroundColor))
+                Divider()
+            }
         }
         .task {
-            if columnPaths.isEmpty {
-                columnPaths = [viewModel.currentPath]
+            if columns.isEmpty {
+                await loadColumn(at: viewModel.currentPath, index: 0)
+            }
+        }
+        .onChange(of: viewModel.currentPath) { _, newPath in
+            columns = []
+            selectedPerColumn = [:]
+            Task {
+                await loadColumn(at: newPath, index: 0)
             }
         }
     }
 
-    private func itemsForPath(_ path: String) -> [FileItem] {
-        viewModel.items.filter { item in
-            let itemPath = item.remotePath ?? item.url?.path ?? ""
-            let parent = (itemPath as NSString).deletingLastPathComponent
-            return parent == path
+    private func selectItem(_ item: FileItem, at colIndex: Int) {
+        selectedPerColumn[colIndex] = item.id
+        if item.isDirectory {
+            Task {
+                await loadColumn(at: item.remotePath ?? item.url?.path ?? "", index: colIndex + 1)
+            }
         }
     }
 
-    private func expandColumn(at index: Int, path: String) {
-        if index < columnPaths.count {
-            columnPaths = Array(columnPaths.prefix(index))
+    private func expandToItem(_ item: FileItem, at colIndex: Int) {
+        selectItem(item, at: colIndex)
+    }
+
+    private func loadColumn(at path: String, index: Int) async {
+        let items: [FileItem]
+        if viewModel.isRemotePath(path) {
+            items = (try? await UnifiedFileService().listRemoteContents(at: path)) ?? []
+        } else {
+            items = (try? await UnifiedFileService().listLocalContents(at: URL(fileURLWithPath: path))) ?? []
         }
-        columnPaths.append(path)
+        let sorted = sortItems(items)
+        if index < columns.count {
+            columns = Array(columns.prefix(index))
+        }
+        columns.append(sorted)
+        selectedPerColumn[index] = nil
+    }
+
+    private func lastSelectedColumnIndex() -> Int? {
+        for i in stride(from: columns.count - 1, through: 0, by: -1) {
+            if let sel = selectedPerColumn[i], sel != nil {
+                return i
+            }
+        }
+        return nil
+    }
+
+    private func selectedItem(in colIndex: Int) -> FileItem? {
+        guard let selId = selectedPerColumn[colIndex] else { return nil }
+        return columns[colIndex].first { $0.id == selId }
+    }
+
+    private func sortItems(_ items: [FileItem]) -> [FileItem] {
+        items.sorted { a, b in
+            if a.isDirectory != b.isDirectory { return a.isDirectory }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
     }
 }
 
-struct FileColumnRowView: View {
+struct FileColumnRow: View {
     let item: FileItem
     let isSelected: Bool
     let isExpanded: Bool

@@ -8,7 +8,6 @@ struct ContentView: View {
     @FocusState private var isFileListFocused: Bool
 
     var body: some View {
-        ZStack {
         NavigationSplitView {
             VStack(spacing: 0) {
                 SidebarView(browserViewModel: browserViewModel)
@@ -33,7 +32,7 @@ struct ContentView: View {
                             .onDrop(of: [.fileURL], delegate: FileDropDelegate(viewModel: browserViewModel))
                     }
 
-                    if state.isPreviewVisible {
+                    if state.isPreviewVisible && state.selectedViewMode != .gallery {
                         Divider()
                         Group {
                             if showArchivePreview, let archivePath {
@@ -86,7 +85,6 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .modifier(GlassEffectModifier())
         .onChange(of: state.activeTabID) { _, newTabID in
             guard let tab = state.tabs.first(where: { $0.id == newTabID }) else { return }
             browserViewModel.navigateTo(tab.path, isRemote: tab.isRemote)
@@ -121,7 +119,6 @@ struct ContentView: View {
         if state.isVMStarting {
             VMStartupOverlay()
                 .environmentObject(state)
-        }
         }
     }
 
@@ -211,16 +208,6 @@ struct VMStartupOverlay: View {
             }
             .padding(40)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        }
-    }
-}
-
-struct GlassEffectModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content.glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            content
         }
     }
 }
