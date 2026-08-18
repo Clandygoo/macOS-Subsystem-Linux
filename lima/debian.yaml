@@ -67,10 +67,13 @@ ssh:
 # Mount type for host directories
 mountType: virtiofs
 
-# Additional mounts (user home directory)
+# Additional mounts
 mounts:
   - location: "~"
     writable: true
+  - location: "/Volumes"
+    writable: true
+    mountPoint: "/Volumes"
 
 # Network configuration
 networks:
