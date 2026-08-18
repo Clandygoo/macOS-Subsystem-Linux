@@ -20,22 +20,23 @@ struct FileIconView: View {
                             openItem(item)
                         }
                         .contextMenu {
-                            Button("Open") {
-                                openItem(item)
-                            }
+                            Button(L10n.t("context.open")) { openItem(item) }
                             Divider()
-                            Button("Copy") {
-                                copyItem(item)
-                            }
+                            Button(L10n.t("context.copy")) { copyItem(item) }
                             Divider()
-                            Button("Delete") {
-                                deleteItem(item)
+                            Button(L10n.t("context.move_to_trash")) { deleteItem(item) }
+                        }
+                        .onDrag {
+                            if let url = item.url {
+                                return NSItemProvider(object: url as NSURL)
                             }
+                            return NSItemProvider()
                         }
                 }
             }
             .padding()
         }
+        .onDrop(of: [.fileURL], delegate: IconGridDropDelegate(viewModel: viewModel))
     }
 
     private func openItem(_ item: FileItem) {
@@ -82,5 +83,21 @@ struct FileIconItemView: View {
         .padding(8)
         .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
         .cornerRadius(8)
+    }
+}
+
+struct IconGridDropDelegate: DropDelegate {
+    let viewModel: BrowserViewModel
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let items = info.itemProviders(for: [.fileURL]).first else { return false }
+        items.loadObject(ofClass: NSURL.self) { url, _ in
+            if let url = url as? URL {
+                let dest = (viewModel.currentPath as NSString).appendingPathComponent(url.lastPathComponent)
+                try? FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: dest))
+                DispatchQueue.main.async { viewModel.refresh() }
+            }
+        }
+        return true
     }
 }

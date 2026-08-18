@@ -37,6 +37,9 @@
 		A1000028 /* UnifiedFileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000028; };
 		A1000030 /* FileTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000040; };
 		A1000031 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000041; };
+		A1000032 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000042; };
+		A1000033 /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000043; };
+		A1000034 /* ArchivePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000044; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +75,9 @@
 		A2000029 /* MSLFileManager.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MSLFileManager.entitlements; sourceTree = "<group>"; };
 		A2000040 /* FileTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTab.swift; sourceTree = "<group>"; };
 		A2000041 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
+		A2000042 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		A2000043 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
+		A2000044 /* ArchivePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePreviewView.swift; sourceTree = "<group>"; };
 		A2000099 /* MSLFileManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MSLFileManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -122,6 +128,7 @@
 			children = (
 				A2000002 /* AppState.swift */,
 				A2000003 /* Constants.swift */,
+				A2000042 /* Localization.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -159,6 +166,7 @@
 				A4000024 /* AI */,
 				A4000025 /* DiskManager */,
 				A4000026 /* Settings */,
+				A4000045 /* Archive */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -169,6 +177,7 @@
 				A4000030 /* VM */,
 				A4000031 /* Disk */,
 				A4000032 /* FileSystem */,
+				A4000046 /* Archive */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -234,6 +243,14 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		A4000045 /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				A2000044 /* ArchivePreviewView.swift */,
+			);
+			path = Archive;
+			sourceTree = "<group>";
+		};
 		A4000030 /* VM */ = {
 			isa = PBXGroup;
 			children = (
@@ -259,6 +276,14 @@
 				A2000028 /* UnifiedFileService.swift */,
 			);
 			path = FileSystem;
+			sourceTree = "<group>";
+		};
+		A4000046 /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				A2000043 /* ArchiveService.swift */,
+			);
+			path = Archive;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -354,6 +379,9 @@
 				A1000028 /* UnifiedFileService.swift in Sources */,
 				A1000030 /* FileTab.swift in Sources */,
 				A1000031 /* TabBarView.swift in Sources */,
+				A1000032 /* Localization.swift in Sources */,
+				A1000033 /* ArchiveService.swift in Sources */,
+				A1000034 /* ArchivePreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -11,9 +11,9 @@ struct FileBrowserView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.items.isEmpty {
                 ContentUnavailableView(
-                    "No Items",
+                    L10n.t("browser.no_items"),
                     systemImage: "folder",
-                    description: Text("This folder is empty")
+                    description: Text(L10n.t("browser.empty_folder"))
                 )
             } else {
                 switch state.selectedViewMode {

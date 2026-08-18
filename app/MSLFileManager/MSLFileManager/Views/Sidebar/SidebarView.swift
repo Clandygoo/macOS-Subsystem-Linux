@@ -9,7 +9,7 @@ struct SidebarView: View {
             get: { state.sidebarSelection },
             set: { state.sidebarSelection = $0 }
         )) {
-            Section("Favorites") {
+            Section(L10n.t("sidebar.favorites")) {
                 SidebarItemRow(item: .home, icon: "house.fill", color: .purple)
                 SidebarItemRow(item: .desktop, icon: "desktopcomputer", color: .orange)
                 SidebarItemRow(item: .documents, icon: "doc.fill", color: .blue)
@@ -17,26 +17,31 @@ struct SidebarView: View {
                 SidebarItemRow(item: .applications, icon: "app.fill", color: .blue)
             }
 
-            Section("Linux VM") {
+            Section(L10n.t("sidebar.linux_vm")) {
                 SidebarItemRow(item: .vm, icon: "terminal.fill", color: .green)
 
                 if state.diskMonitor.allExternalDisks.isEmpty {
-                    Text("No external disks")
+                    Text(L10n.t("sidebar.no_disks"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(state.diskMonitor.allExternalDisks) { disk in
-                        SidebarItemRow(
-                            item: .vmDisk(disk.id),
-                            icon: "externaldrive.fill",
-                            color: disk.isLinuxCompatible ? .orange : .gray
-                        )
+                        HStack {
+                            Image(systemName: "externaldrive.fill")
+                                .foregroundStyle(disk.isLinuxCompatible ? .orange : .gray)
+                            Text(disk.displayName)
+                            Spacer()
+                            Text(disk.fsTypeDisplay)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(SidebarItem.vmDisk(disk.id))
                     }
                 }
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("MSL FileManager")
+        .navigationTitle(L10n.t("app.name"))
     }
 }
 

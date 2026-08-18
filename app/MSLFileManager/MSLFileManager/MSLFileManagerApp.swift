@@ -18,6 +18,14 @@ struct MSLFileManagerApp: App {
                 }
         }
         .defaultSize(width: 1200, height: 800)
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Tab") {
+                    appState.addTab()
+                }
+                .keyboardShortcut("t", modifiers: .command)
+            }
+        }
 
         Settings {
             SettingsView()

@@ -3,7 +3,8 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var state: AppState
     @State private var browserViewModel = BrowserViewModel()
-    @State private var sidebarSelectedItem: SidebarItem?
+    @State private var showArchivePreview = false
+    @State private var archivePath: String?
 
     var body: some View {
         NavigationSplitView {
@@ -16,22 +17,30 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
         } detail: {
             VStack(spacing: 0) {
-                TabBarView(browserViewModel: browserViewModel)
+                ChromeTabBar(browserViewModel: browserViewModel)
                     .environmentObject(state)
 
                 HStack(spacing: 0) {
                     VStack(spacing: 0) {
                         PathBarView(path: browserViewModel.currentPath)
+                            .environmentObject(state)
 
                         FileBrowserView(viewModel: browserViewModel)
                             .environmentObject(state)
+                            .onDrop(of: [.fileURL], delegate: FileDropDelegate(viewModel: browserViewModel))
                     }
 
                     if state.isPreviewVisible {
                         Divider()
-                        PreviewPanelView(viewModel: browserViewModel)
-                            .environmentObject(state)
-                            .frame(width: 200)
+                        Group {
+                            if showArchivePreview, let archivePath {
+                                ArchivePreviewView(archivePath: archivePath)
+                            } else {
+                                PreviewPanelView(viewModel: browserViewModel)
+                                    .environmentObject(state)
+                            }
+                        }
+                        .frame(width: 250)
                     }
                 }
             }
@@ -99,6 +108,24 @@ struct ContentView: View {
     }
 }
 
+struct FileDropDelegate: DropDelegate {
+    let viewModel: BrowserViewModel
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let items = info.itemProviders(for: [.fileURL]).first else { return false }
+        items.loadObject(ofClass: NSURL.self) { url, _ in
+            if let url = url as? URL {
+                let dest = (viewModel.currentPath as NSString).appendingPathComponent(url.lastPathComponent)
+                try? FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: dest))
+                DispatchQueue.main.async {
+                    viewModel.refresh()
+                }
+            }
+        }
+        return true
+    }
+}
+
 struct SidebarFooterView: View {
     @EnvironmentObject private var state: AppState
 
@@ -111,7 +138,7 @@ struct SidebarFooterView: View {
                     .foregroundStyle(state.vmStatus.isRunning ? .green : .red)
                     .font(.caption)
 
-                Text("VM: \(state.vmStatus.displayName)")
+                Text("\(L10n.t("sidebar.vm_status")): \(state.vmStatus.displayName)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
