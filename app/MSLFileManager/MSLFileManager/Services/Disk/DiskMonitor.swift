@@ -12,13 +12,13 @@ final class DiskMonitor: ObservableObject {
     func stop() {}
 
     func refreshDisks() async {
-        let output = try? await VMCommandService().execute("diskutil list external -plist 2>/dev/null || true")
+        let output = try? await VMCommandService().execute("diskutil list -plist 2>/dev/null || true")
         guard let output, let data = output.data(using: .utf8) else { return }
 
         if let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-           let disks = plist["AllDisksAndPartitions"] as? [[String: Any]] {
+           let allDisksList = plist["AllDisksAndPartitions"] as? [[String: Any]] {
             var result: [DiskInfo] = []
-            for disk in disks {
+            for disk in allDisksList {
                 guard let devID = disk["DeviceIdentifier"] as? String else { continue }
                 let size = disk["Size"] as? Int64 ?? 0
                 let partitions = disk["Partitions"] as? [[String: Any]] ?? []
@@ -32,6 +32,8 @@ final class DiskMonitor: ObservableObject {
 
                     guard !fsType.isEmpty, isLinuxCompatible else { continue }
 
+                    let isRemovable = devID.contains("disk") && (devID.contains("external") || devID.hasPrefix("disk") && Int(devID.replacingOccurrences(of: "disk", with: "")) ?? 0 > 0)
+
                     result.append(DiskInfo(
                         id: "/dev/\(devID)s\(partNum)",
                         devicePath: "/dev/\(devID)",
@@ -40,7 +42,7 @@ final class DiskMonitor: ObservableObject {
                         isLinuxCompatible: isLinuxCompatible,
                         mountPoint: mount.map { URL(fileURLWithPath: $0) },
                         size: size,
-                        isRemovable: true
+                        isRemovable: isRemovable
                     ))
                 }
             }

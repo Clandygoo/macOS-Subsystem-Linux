@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var browserViewModel = BrowserViewModel()
     @State private var showArchivePreview = false
     @State private var archivePath: String?
+    @FocusState private var isFileListFocused: Bool
 
     var body: some View {
         ZStack {
@@ -28,6 +29,7 @@ struct ContentView: View {
 
                         FileBrowserView(viewModel: browserViewModel)
                             .environmentObject(state)
+                            .focused($isFileListFocused)
                             .onDrop(of: [.fileURL], delegate: FileDropDelegate(viewModel: browserViewModel))
                     }
 
@@ -84,6 +86,7 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+        .modifier(GlassEffectModifier())
         .onChange(of: state.activeTabID) { _, newTabID in
             guard let tab = state.tabs.first(where: { $0.id == newTabID }) else { return }
             browserViewModel.navigateTo(tab.path, isRemote: tab.isRemote)
@@ -106,6 +109,14 @@ struct ContentView: View {
         .task {
             await browserViewModel.loadContents(at: state.currentPath.path)
         }
+        .onAppear {
+            browserViewModel.appState = state
+            isFileListFocused = true
+        }
+        .onKeyPress(.space) {
+            quickLookSelected()
+            return .handled
+        }
 
         if state.isVMStarting {
             VMStartupOverlay()
@@ -113,17 +124,26 @@ struct ContentView: View {
         }
         }
     }
+
+    private func quickLookSelected() {
+        guard let itemId = state.selectedItems.first,
+              let item = browserViewModel.items.first(where: { $0.id == itemId }),
+              let url = item.url else { return }
+        NSWorkspace.shared.open(url)
+    }
 }
 
 struct FileDropDelegate: DropDelegate {
     let viewModel: BrowserViewModel
 
     func performDrop(info: DropInfo) -> Bool {
-        guard let items = info.itemProviders(for: [.fileURL]).first else { return false }
-        items.loadObject(ofClass: NSURL.self) { url, _ in
+        guard let providers = info.itemProviders(for: [.fileURL]).first else { return false }
+        providers.loadObject(ofClass: NSURL.self) { url, _ in
             if let url = url as? URL {
                 let dest = (viewModel.currentPath as NSString).appendingPathComponent(url.lastPathComponent)
-                try? FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: dest))
+                if !FileManager.default.fileExists(atPath: dest) {
+                    try? FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: dest))
+                }
                 DispatchQueue.main.async {
                     viewModel.refresh()
                 }
@@ -191,6 +211,16 @@ struct VMStartupOverlay: View {
             }
             .padding(40)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        }
+    }
+}
+
+struct GlassEffectModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
+            content
         }
     }
 }

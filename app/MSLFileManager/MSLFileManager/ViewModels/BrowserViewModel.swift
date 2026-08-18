@@ -14,6 +14,7 @@ final class BrowserViewModel: ObservableObject {
     private let fileSystem = UnifiedFileService()
     private var currentTask: Task<Void, Never>?
     private var isNavigatingBackForward = false
+    weak var appState: AppState?
 
     var canGoBack: Bool { navigationIndex > 0 }
     var canGoForward: Bool { navigationIndex < navigationHistory.count - 1 }
@@ -43,6 +44,10 @@ final class BrowserViewModel: ObservableObject {
                 }
             }
             isNavigatingBackForward = false
+
+            if let appState, let tabID = appState.activeTabID {
+                appState.updateTabTitle(id: tabID, title: AppState.folderName(for: path))
+            }
         } catch {
             items = []
         }

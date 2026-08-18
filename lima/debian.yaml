@@ -10,7 +10,7 @@ rosetta:
 
 # CPU and Memory
 cpus: 4
-memory: "1GiB"
+memory: "256MiB"
 
 # Disk (will be expanded on first boot)
 disk: "20GiB"

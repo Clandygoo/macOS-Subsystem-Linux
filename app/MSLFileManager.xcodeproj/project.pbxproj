@@ -40,6 +40,7 @@
 		A1000032 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000042; };
 		A1000033 /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000043; };
 		A1000034 /* ArchivePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000044; };
+		A1000035 /* FileGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000045; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -78,6 +79,7 @@
 		A2000042 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		A2000043 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		A2000044 /* ArchivePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePreviewView.swift; sourceTree = "<group>"; };
+		A2000045 /* FileGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileGalleryView.swift; sourceTree = "<group>"; };
 		A2000099 /* MSLFileManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MSLFileManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -197,6 +199,7 @@
 				A2000013 /* FileListView.swift */,
 				A2000014 /* FileIconView.swift */,
 				A2000015 /* FileColumnView.swift */,
+				A2000045 /* FileGalleryView.swift */,
 				A2000016 /* PathBarView.swift */,
 			);
 			path = Browser;
@@ -382,6 +385,7 @@
 				A1000032 /* Localization.swift in Sources */,
 				A1000033 /* ArchiveService.swift in Sources */,
 				A1000034 /* ArchivePreviewView.swift in Sources */,
+				A1000035 /* FileGalleryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

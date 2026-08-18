@@ -23,6 +23,8 @@ struct FileBrowserView: View {
                     FileIconView(viewModel: viewModel)
                 case .column:
                     FileColumnView(viewModel: viewModel)
+                case .gallery:
+                    FileGalleryView(viewModel: viewModel)
                 }
             }
         }
