@@ -135,6 +135,7 @@ setup_shell_integration() {
 # macOS Subsystem for Linux
 export PATH="$HOME/macOS-Subsystem-Linux/scripts:$PATH"
 alias msl="$HOME/macOS-Subsystem-Linux/scripts/msl"
+alias msl-flash="$HOME/macOS-Subsystem-Linux/scripts/msl-flash"
 EOF
         info "Added MSL to PATH in $shell_rc"
     fi
@@ -142,6 +143,7 @@ EOF
     # Make scripts executable
     chmod +x "$MSL_HOME/scripts/"*.sh
     chmod +x "$MSL_HOME/scripts/msl"
+    chmod +x "$MSL_HOME/scripts/msl-flash"
 
     success "Shell integration complete."
     info "Run 'source $shell_rc' or restart your terminal."
@@ -159,6 +161,7 @@ print_summary() {
     echo -e "  ${BLUE}msl shell${NC}      Enter Linux shell"
     echo -e "  ${BLUE}msl mount${NC}      Mount NTFS disk"
     echo -e "  ${BLUE}msl status${NC}     Show VM status"
+    echo -e "  ${BLUE}msl-flash${NC}     Qualcomm 9008 EDL flash tool"
     echo ""
     echo "Quick start:"
     echo -e "  ${BLUE}msl start && msl shell${NC}"

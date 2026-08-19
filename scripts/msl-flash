@@ -1,0 +1,355 @@
+#!/bin/bash
+# msl-flash - Qualcomm 9008 EDL Flash Tool for MSL
+# Supports: Xiaomi, Vivo, OnePlus
+# Usage: msl-flash <command> [options]
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+print_banner() {
+    echo -e "${CYAN}"
+    echo "╔══════════════════════════════════════╗"
+    echo "║   MSL Flash Tool v1.0                ║"
+    echo "║   Qualcomm 9008 EDL Flasher          ║"
+    echo "║   Xiaomi · Vivo · OnePlus            ║"
+    echo "╚══════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+check_device() {
+    echo -e "${YELLOW}[*] Checking for Qualcomm 9008 device...${NC}"
+    local device=$(lsusb 2>/dev/null | grep -i "05c6:9008" || true)
+    if [ -z "$device" ]; then
+        # Check vendor-specific IDs
+        device=$(lsusb 2>/dev/null | grep -iE "2717:ff40|2d95:ff40|2a70:9008" || true)
+    fi
+    if [ -z "$device" ]; then
+        echo -e "${RED}[!] No Qualcomm 9008 device found${NC}"
+        echo -e "${YELLOW}[*] Make sure:${NC}"
+        echo "    1. Phone is connected via USB"
+        echo "    2. Phone is in EDL mode (9008)"
+        echo "    3. USB cable supports data transfer"
+        return 1
+    fi
+    echo -e "${GREEN}[+] Device found: $device${NC}"
+    return 0
+}
+
+detect_brand() {
+    local vid=$(lsusb 2>/dev/null | grep -oP '\b\w{4}:(?=9008|ff40)\b' | head -1)
+    case "$vid" in
+        "2717") echo "Xiaomi" ;;
+        "2d95") echo "Vivo" ;;
+        "2a70") echo "OnePlus" ;;
+        "05c6") echo "Qualcomm (Generic)" ;;
+        *) echo "Unknown" ;;
+    esac
+}
+
+cmd_info() {
+    print_banner
+    check_device || exit 1
+    
+    local brand=$(detect_brand)
+    echo -e "${CYAN}[*] Brand: $brand${NC}"
+    
+    echo -e "\n${CYAN}[*] USB Devices:${NC}"
+    lsusb 2>/dev/null | grep -iE "05c6|2717|2d95|2a70" || echo "  (none)"
+    
+    echo -e "\n${CYAN}[*] EDL Status:${NC}"
+    if [ -e /dev/bus/usb/ ]; then
+        echo "  USB bus accessible"
+    else
+        echo "  USB bus not accessible (may need sudo)"
+    fi
+}
+
+cmd_test() {
+    print_banner
+    check_device || exit 1
+    
+    echo -e "${YELLOW}[*] Testing EDL connection...${NC}"
+    
+    # Try edl test
+    if command -v edl &>/dev/null; then
+        echo -e "${GREEN}[+] edl found at: $(which edl)${NC}"
+        edl test 2>/dev/null || echo -e "${YELLOW}[*] edl test returned non-zero (may need phone in EDL)${NC}"
+    else
+        echo -e "${RED}[!] edl not installed${NC}"
+    fi
+}
+
+cmd_read() {
+    print_banner
+    check_device || exit 1
+    
+    local output="${2:-dump.bin}"
+    local sector="${3:-0}"
+    local count="${4:-1}"
+    
+    echo -e "${YELLOW}[*] Reading $count sector(s) from sector $sector...${NC}"
+    
+    if command -v edl &>/dev/null; then
+        edl qread "$sector" "$count" --loader=prog_firehose_ddr.elf --output="$output" 2>&1
+        echo -e "${GREEN}[+] Dump saved to: $output${NC}"
+    else
+        echo -e "${RED}[!] edl not installed. Run: msl-flash install${NC}"
+        exit 1
+    fi
+}
+
+cmd_flash() {
+    print_banner
+    check_device || exit 1
+    
+    local partition="${2}"
+    local image="${3}"
+    
+    if [ -z "$partition" ] || [ -z "$image" ]; then
+        echo -e "${RED}[!] Usage: msl-flash flash <partition> <image>${NC}"
+        echo "  Example: msl-flash flash boot boot.img"
+        echo "  Example: msl-flash flash system system.img"
+        exit 1
+    fi
+    
+    if [ ! -f "$image" ]; then
+        echo -e "${RED}[!] Image file not found: $image${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}[*] Flashing $partition with $image...${NC}"
+    
+    if command -v edl &>/dev/null; then
+        edl qwrite "$partition" "$image" --loader=prog_firehose_ddr.elf 2>&1
+        echo -e "${GREEN}[+] Flash complete!${NC}"
+    else
+        echo -e "${RED}[!] edl not installed. Run: msl-flash install${NC}"
+        exit 1
+    fi
+}
+
+cmd_erase() {
+    print_banner
+    check_device || exit 1
+    
+    local partition="${2}"
+    
+    if [ -z "$partition" ]; then
+        echo -e "${RED}[!] Usage: msl-flash erase <partition>${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}[*] Erasing partition: $partition...${NC}"
+    
+    if command -v edl &>/dev/null; then
+        edl qerase "$partition" --loader=prog_firehose_ddr.elf 2>&1
+        echo -e "${GREEN}[+] Erase complete!${NC}"
+    else
+        echo -e "${RED}[!] edl not installed. Run: msl-flash install${NC}"
+        exit 1
+    fi
+}
+
+cmd_loader() {
+    print_banner
+    check_device || exit 1
+    
+    local loader="${2:-prog_firehose_ddr.elf}"
+    
+    if [ ! -f "$loader" ]; then
+        echo -e "${RED}[!] Loader file not found: $loader${NC}"
+        echo "  Download from: https://github.com/bkerler/edl/tree/master/Loaders"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}[*] Sending loader: $loader...${NC}"
+    
+    if command -v edl &>/dev/null; then
+        edl printgpt --loader="$loader" 2>&1
+        echo -e "${GREEN}[+] Loader sent!${NC}"
+    else
+        echo -e "${RED}[!] edl not installed. Run: msl-flash install${NC}"
+        exit 1
+    fi
+}
+
+cmd_dump_gpt() {
+    print_banner
+    check_device || exit 1
+    
+    echo -e "${YELLOW}[*] Reading GPT partition table...${NC}"
+    
+    if command -v edl &>/dev/null; then
+        edl printgpt --loader=prog_firehose_ddr.elf 2>&1
+    else
+        echo -e "${RED}[!] edl not installed. Run: msl-flash install${NC}"
+        exit 1
+    fi
+}
+
+cmd_mi_flash() {
+    print_banner
+    check_device || exit 1
+    
+    local rom_dir="${2}"
+    
+    if [ -z "$rom_dir" ] || [ ! -d "$rom_dir" ]; then
+        echo -e "${RED}[!] Usage: msl-flash mi-flash <rom-directory>${NC}"
+        echo "  Example: msl-flash mi-flash ~/Downloads/miui_stable"
+        echo ""
+        echo "  ROM directory should contain:"
+        echo "    - flash_all.sh (or flash_all.bat)"
+        echo "    - *.img files"
+        exit 1
+    fi
+    
+    echo -e "${CYAN}[*] Xiaomi ROM Flash${NC}"
+    
+    # Check for flash script
+    if [ -f "$rom_dir/flash_all.sh" ]; then
+        echo -e "${YELLOW}[*] Running flash_all.sh...${NC}"
+        cd "$rom_dir"
+        bash flash_all.sh
+    elif [ -f "$rom_dir/flash_all.bat" ]; then
+        echo -e "${YELLOW}[*] Found flash_all.bat (Windows), trying manual flash...${NC}"
+        cd "$rom_dir"
+        for img in *.img; do
+            if [ -f "$img" ]; then
+                local part="${img%.img}"
+                echo -e "${YELLOW}[*] Flashing $part...${NC}"
+                edl qwrite "$part" "$img" --loader=prog_firehose_ddr.elf 2>&1 || true
+            fi
+        done
+    else
+        echo -e "${RED}[!] No flash script found in $rom_dir${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}[+] Xiaomi ROM flash complete!${NC}"
+}
+
+cmd_adb() {
+    print_banner
+    
+    echo -e "${YELLOW}[*] ADB Devices:${NC}"
+    adb devices -l 2>/dev/null || echo "  ADB not available or no devices"
+    
+    if [ -n "$2" ]; then
+        shift
+        echo -e "${YELLOW}[*] Running: adb $@${NC}"
+        adb "$@" 2>&1
+    fi
+}
+
+cmd_fastboot() {
+    print_banner
+    
+    echo -e "${YELLOW}[*] Fastboot Devices:${NC}"
+    fastboot devices 2>/dev/null || echo "  Fastboot not available or no devices"
+    
+    if [ -n "$2" ]; then
+        shift
+        echo -e "${YELLOW}[*] Running: fastboot $@${NC}"
+        fastboot "$@" 2>&1
+    fi
+}
+
+cmd_install() {
+    print_banner
+    echo -e "${YELLOW}[*] Installing flash tools in VM...${NC}"
+    
+    # This runs inside the VM via SSH
+    cat << 'INSTALL' | ssh -p 60022 msl@127.0.0.1 "bash -s"
+set -e
+echo "[*] Updating package list..."
+sudo apt-get update -qq
+
+echo "[*] Installing USB tools..."
+sudo apt-get install -y -qq usbutils libusb-1.0-0-dev libftdi-dev python3-pip
+
+echo "[*] Installing ADB + Fastboot..."
+sudo apt-get install -y -qq android-tools-adb android-tools-fastboot
+
+echo "[*] Installing Qualcomm EDL tool..."
+cd /tmp
+if [ ! -d edl ]; then
+    git clone https://github.com/bkerler/edl.git
+fi
+cd edl
+pip3 install -r requirements.txt 2>/dev/null || sudo pip3 install -r requirements.txt
+sudo ln -sf /tmp/edl/edl /usr/local/bin/edl
+sudo chmod +x /tmp/edl/edl
+
+echo "[*] Installing udev rules..."
+sudo tee /etc/udev/rules.d/51-edl.rules > /dev/null << 'EOF'
+SUBSYSTEM=="usb", ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9008", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2717", ATTRS{idProduct}=="ff40", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2d95", ATTRS{idProduct}=="ff40", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2a70", ATTRS{idProduct}=="9008", MODE="0666", GROUP="plugdev"
+EOF
+sudo udevadm control --reload-rules 2>/dev/null || true
+sudo udevadm trigger 2>/dev/null || true
+
+echo "[+] Flash tools installed successfully!"
+echo "    - edl: $(which edl 2>/dev/null || echo '/usr/local/bin/edl')"
+echo "    - adb: $(which adb 2>/dev/null || echo '/usr/bin/adb')"
+echo "    - fastboot: $(which fastboot 2>/dev/null || echo '/usr/bin/fastboot')"
+INSTALL
+}
+
+cmd_help() {
+    print_banner
+    echo "Usage: msl-flash <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  info              Show connected devices"
+    echo "  test              Test EDL connection"
+    echo "  install           Install flash tools in VM"
+    echo "  dump-gpt          Read GPT partition table"
+    echo "  loader <file>     Send firehose loader"
+    echo "  read <part> <out> [sector] [count]  Read partition"
+    echo "  flash <part> <img>                    Flash partition"
+    echo "  erase <part>                          Erase partition"
+    echo "  mi-flash <dir>    Flash Xiaomi ROM from directory"
+    echo "  adb [args]        Run ADB commands"
+    echo "  fastboot [args]   Run Fastboot commands"
+    echo "  help              Show this help"
+    echo ""
+    echo "Qualcomm 9008 EDL Mode:"
+    echo "  1. Power off phone completely"
+    echo "  2. Hold Volume Up + Volume Down"
+    echo "  3. Connect USB cable"
+    echo "  4. Phone should appear as Qualcomm 9008"
+    echo ""
+    echo "Supported Brands:"
+    echo "  Xiaomi  (VID: 2717)"
+    echo "  Vivo    (VID: 2d95)"
+    echo "  OnePlus (VID: 2a70)"
+    echo "  Qualcomm Generic (VID: 05c6)"
+}
+
+# Main
+case "${1:-help}" in
+    info)       cmd_info ;;
+    test)       cmd_test ;;
+    install)    cmd_install ;;
+    dump-gpt)   cmd_dump_gpt ;;
+    loader)     cmd_loader "$@" ;;
+    read)       cmd_read "$@" ;;
+    flash)      cmd_flash "$@" ;;
+    erase)      cmd_erase "$@" ;;
+    mi-flash)   cmd_mi_flash "$@" ;;
+    adb)        cmd_adb "$@" ;;
+    fastboot)   cmd_fastboot "$@" ;;
+    help|--help|-h)  cmd_help ;;
+    *)
+        echo -e "${RED}[!] Unknown command: $1${NC}"
+        echo "Run 'msl-flash help' for usage"
+        exit 1
+        ;;
+esac

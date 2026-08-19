@@ -243,6 +243,125 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["filename", "code"],
         },
       },
+      {
+        name: "msl_flash_info",
+        description: "查看 Qualcomm 9008 EDL 设备信息",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "msl_flash_test",
+        description: "测试 EDL 连接",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "msl_flash_dump_gpt",
+        description: "读取 GPT 分区表",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "msl_flash_read",
+        description: "从 EDL 设备读取分区",
+        inputSchema: {
+          type: "object",
+          properties: {
+            partition: {
+              type: "string",
+              description: "分区名",
+            },
+            output: {
+              type: "string",
+              description: "输出文件路径",
+            },
+          },
+          required: ["partition", "output"],
+        },
+      },
+      {
+        name: "msl_flash_write",
+        description: "向 EDL 设备写入分区",
+        inputSchema: {
+          type: "object",
+          properties: {
+            partition: {
+              type: "string",
+              description: "分区名",
+            },
+            image: {
+              type: "string",
+              description: "镜像文件路径",
+            },
+          },
+          required: ["partition", "image"],
+        },
+      },
+      {
+        name: "msl_flash_erase",
+        description: "擦除 EDL 设备分区",
+        inputSchema: {
+          type: "object",
+          properties: {
+            partition: {
+              type: "string",
+              description: "分区名",
+            },
+          },
+          required: ["partition"],
+        },
+      },
+      {
+        name: "msl_flash_mi",
+        description: "刷入小米 ROM",
+        inputSchema: {
+          type: "object",
+          properties: {
+            rom_dir: {
+              type: "string",
+              description: "ROM 目录路径",
+            },
+          },
+          required: ["rom_dir"],
+        },
+      },
+      {
+        name: "msl_adb",
+        description: "执行 ADB 命令",
+        inputSchema: {
+          type: "object",
+          properties: {
+            args: {
+              type: "string",
+              description: "ADB 命令参数",
+            },
+          },
+          required: ["args"],
+        },
+      },
+      {
+        name: "msl_fastboot",
+        description: "执行 Fastboot 命令",
+        inputSchema: {
+          type: "object",
+          properties: {
+            args: {
+              type: "string",
+              description: "Fastboot 命令参数",
+            },
+          },
+          required: ["args"],
+        },
+      },
     ],
   };
 });
@@ -452,6 +571,114 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const result = await runCommand(
         `limactl shell ${MSL_INSTANCE} -- python3 /tmp/${args.filename} 2>&1`
       );
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_info": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- bash -c "lsusb 2>/dev/null | grep -iE '05c6|2717|2d95|2a70' || echo 'No EDL device found'" 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || "No output",
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_test": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- edl test 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_dump_gpt": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- edl printgpt --loader=prog_firehose_ddr.elf 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_read": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- edl qread ${args.partition} 1 --loader=prog_firehose_ddr.elf --output=${args.output} 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? `已读取分区 ${args.partition} 到 ${args.output}` : result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_write": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- edl qwrite ${args.partition} ${args.image} --loader=prog_firehose_ddr.elf 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? `已写入分区 ${args.partition}` : result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_erase": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- edl qerase ${args.partition} --loader=prog_firehose_ddr.elf 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? `已擦除分区 ${args.partition}` : result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_flash_mi": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- bash -c "cd ${args.rom_dir} && ls flash_all.sh 2>/dev/null && bash flash_all.sh 2>&1 || echo 'No flash_all.sh found'" 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_adb": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- adb ${args.args} 2>&1`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.output || result.error,
+          },
+        ],
+      };
+    }
+
+    case "msl_fastboot": {
+      const result = await runCommand(`limactl shell ${MSL_INSTANCE} -- fastboot ${args.args} 2>&1`);
       return {
         content: [
           {

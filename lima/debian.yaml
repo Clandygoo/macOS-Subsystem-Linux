@@ -10,7 +10,7 @@ rosetta:
 
 # CPU and Memory
 cpus: 4
-memory: "256MiB"
+memory: "512MiB"
 
 # Disk (will be expanded on first boot)
 disk: "20GiB"
@@ -19,6 +19,11 @@ disk: "20GiB"
 images:
   - location: "https://cloud.debian.org/images/cloud/bookworm/daily/latest/debian-12-genericcloud-arm64-daily.qcow2"
     arch: "aarch64"
+
+# USB device passthrough (Qualcomm 9008 / Xiaomi / Vivo / OnePlus)
+usb:
+  - vendorId: "05c6"
+    productId: "9008"
 
 # Provisioning scripts
 provision:
@@ -39,7 +44,28 @@ provision:
         vim \
         git \
         build-essential \
-        sudo
+        sudo \
+        usbutils \
+        libusb-1.0-0-dev \
+        libftdi-dev \
+        python3-pip \
+        android-tools-adb \
+        android-tools-fastboot \
+        lz4 \
+        zlib1g-dev \
+        libxml2-dev
+
+  # Install Qualcomm EDL tool
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      cd /tmp
+      git clone https://github.com/bkerler/edl.git
+      cd edl
+      pip3 install -r requirements.txt
+      ln -sf /tmp/edl/edl /usr/local/bin/edl
+      chmod +x /tmp/edl/edl
 
   # Create user and configure
   - mode: system
@@ -57,7 +83,22 @@ provision:
       # Create directories
       mkdir -p /mnt/ntfs
       mkdir -p /mnt/host
-      chmod 755 /mnt/ntfs /mnt/host
+      mkdir -p /opt/flash
+      chmod 755 /mnt/ntfs /mnt/host /opt/flash
+
+  # Install USB rules for Qualcomm EDL
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      printf '%s\n' \
+        'SUBSYSTEM=="usb", ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9008", MODE="0666", GROUP="plugdev"' \
+        'SUBSYSTEM=="usb", ATTRS{idVendor}=="2717", ATTRS{idProduct}=="ff40", MODE="0666", GROUP="plugdev"' \
+        'SUBSYSTEM=="usb", ATTRS{idVendor}=="2d95", ATTRS{idProduct}=="ff40", MODE="0666", GROUP="plugdev"' \
+        'SUBSYSTEM=="usb", ATTRS{idVendor}=="2a70", ATTRS{idProduct}=="9008", MODE="0666", GROUP="plugdev"' \
+        > /etc/udev/rules.d/51-edl.rules
+      udevadm control --reload-rules || true
+      udevadm trigger || true
 
 # SSH configuration
 ssh:
